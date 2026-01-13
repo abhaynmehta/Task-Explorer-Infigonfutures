@@ -1,16 +1,38 @@
 "use client";
 
-import { useTheme } from "@/lib/theme";
+import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  let theme: "light" | "dark" = "light";
-  let toggleTheme: () => void = () => {};
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [mounted, setMounted] = useState(false);
 
-  try {
-    const context = useTheme();
-    theme = context.theme;
-    toggleTheme = context.toggleTheme;
-  } catch {
+  useEffect(() => {
+    const stored = localStorage.getItem("theme") as "light" | "dark" | null;
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialTheme = stored || (prefersDark ? "dark" : "light");
+    
+    setTheme(initialTheme);
+    if (initialTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    setMounted(true);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
+  if (!mounted) {
     return (
       <div className="h-9 w-9 rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" />
     );
