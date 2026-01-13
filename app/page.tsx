@@ -9,19 +9,30 @@ export const revalidate = 60;
 export default async function Home() {
   let products;
   let loadError = false;
+  let errorMessage = "Something went wrong while contacting the catalog service. Please retry shortly.";
 
   try {
     products = await fetchProducts();
   } catch (error) {
     loadError = true;
-    logger.error("Failed to load products for home page", { error });
+    const apiError = error as { status?: number; message?: string };
+    
+    if (apiError.status === 403) {
+      errorMessage = "Access to the product catalog is temporarily restricted. Please try again in a few moments.";
+    } else if (apiError.status === 429) {
+      errorMessage = "Too many requests. Please wait a moment and refresh the page.";
+    } else if (apiError.status === 0) {
+      errorMessage = "Unable to connect to the product catalog. Please check your connection and try again.";
+    }
+    
+    logger.error("Failed to load products for home page", { error, status: apiError.status });
   }
 
   if (loadError || !products) {
     return (
       <EmptyState
         title="Unable to load products"
-        description="Something went wrong while contacting the catalog service. Please retry shortly."
+        description={errorMessage}
       />
     );
   }
