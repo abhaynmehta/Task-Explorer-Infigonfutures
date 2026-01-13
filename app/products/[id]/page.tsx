@@ -8,10 +8,18 @@ interface ProductPageProps {
   params: Promise<{ id: string }>;
 }
 
+export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
 export default async function ProductPage({ params }: ProductPageProps) {
   const { id } = await params;
   
-  if (!id || isNaN(Number(id))) {
+  if (!id) {
+    return notFound();
+  }
+  
+  const productId = Number(id);
+  if (isNaN(productId) || productId <= 0) {
     return notFound();
   }
 
@@ -19,10 +27,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
   let loadError = false;
 
   try {
-    product = await fetchProductById(id);
+    product = await fetchProductById(productId);
   } catch (error) {
     loadError = true;
-    logger.error("Failed to load product detail", { id, error });
+    logger.error("Failed to load product detail", { id: productId, error });
   }
 
   if (loadError || !product) {
