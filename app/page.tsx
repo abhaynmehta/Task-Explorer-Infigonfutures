@@ -3,6 +3,9 @@ import { EmptyState } from "@/components/EmptyState";
 import { fetchProducts } from "@/lib/api";
 import { logger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
 export default async function Home() {
   let products;
   let loadError = false;
