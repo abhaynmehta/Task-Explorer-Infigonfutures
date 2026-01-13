@@ -8,9 +8,9 @@ async function fetchData<T>(path: string, retries = 2): Promise<T> {
   const url = `${API_BASE}${path}`;
   logger.info("Fetching data", { url });
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  for (let i = 0; i <= retries; i++) {
     try {
-      const response = await fetch(url, {
+      const res = await fetch(url, {
         next: { revalidate: CACHE_TIME },
         headers: {
           "User-Agent": "Mozilla/5.0 (compatible; ProductExplorer/1.0)",
@@ -19,43 +19,44 @@ async function fetchData<T>(path: string, retries = 2): Promise<T> {
         cache: "no-store",
       });
 
-      if (response.ok) {
-        const data = await response.json() as T;
-        return data;
+      if (res.ok) {
+        return (await res.json()) as T;
       }
 
-      if (response.status === 403 || response.status === 429) {
-        if (attempt < retries) {
-          const delay = (attempt + 1) * 1000;
-          logger.warn(`Rate limited, retrying after ${delay}ms`, { url, attempt });
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          continue;
-        }
+      const isRateLimit = res.status === 403 || res.status === 429;
+      if (isRateLimit && i < retries) {
+        const waitTime = (i + 1) * 1000;
+        logger.warn(`Rate limited, retrying after ${waitTime}ms`, { url, attempt: i });
+        await new Promise((r) => setTimeout(r, waitTime));
+        continue;
       }
 
-      logger.error("API request failed", { url, status: response.status, attempt });
+      logger.error("API request failed", { url, status: res.status, attempt: i });
       throw {
-        message: `Request failed with status ${response.status}`,
-        status: response.status,
+        message: `Request failed with status ${res.status}`,
+        status: res.status,
       } as ApiError;
-    } catch (error) {
+    } catch (err) {
+      const error = err as ApiError | Error;
+      
       if (error && typeof error === "object" && "status" in error) {
-        if (attempt < retries && (error.status === 403 || error.status === 429)) {
-          const delay = (attempt + 1) * 1000;
-          await new Promise((resolve) => setTimeout(resolve, delay));
+        const apiErr = error as ApiError;
+        if (i < retries && (apiErr.status === 403 || apiErr.status === 429)) {
+          const waitTime = (i + 1) * 1000;
+          await new Promise((r) => setTimeout(r, waitTime));
           continue;
         }
         throw error;
       }
 
-      if (attempt < retries) {
-        const delay = (attempt + 1) * 1000;
-        logger.warn(`Network error, retrying after ${delay}ms`, { url, attempt, error });
-        await new Promise((resolve) => setTimeout(resolve, delay));
+      if (i < retries) {
+        const waitTime = (i + 1) * 1000;
+        logger.warn(`Network error, retrying after ${waitTime}ms`, { url, attempt: i });
+        await new Promise((r) => setTimeout(r, waitTime));
         continue;
       }
 
-      logger.error("Network error", { url, error });
+      logger.error("Network error", { url, error: err });
       throw {
         message: "Network error occurred",
         status: 0,

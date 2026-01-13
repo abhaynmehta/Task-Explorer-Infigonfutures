@@ -26,32 +26,25 @@ export function ProductExplorer({ products }: ProductExplorerProps) {
   );
 
   const filteredAndSortedProducts = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    let filtered = products.filter((product) => {
-      const matchesSearch = !term || product.title.toLowerCase().includes(term);
-      const matchesCategory = !category || product.category === category;
-      const matchesFavorite = !showFavoritesOnly || favorites.has(product.id);
+    const searchTerm = search.trim().toLowerCase();
+    let result = products.filter((p) => {
+      const matchesSearch = !searchTerm || p.title.toLowerCase().includes(searchTerm);
+      const matchesCategory = !category || p.category === category;
+      const matchesFavorite = !showFavoritesOnly || favorites.has(p.id);
       return matchesSearch && matchesCategory && matchesFavorite;
     });
 
     if (sortBy) {
-      filtered = [...filtered].sort((a, b) => {
-        switch (sortBy) {
-          case "price-asc":
-            return a.price - b.price;
-          case "price-desc":
-            return b.price - a.price;
-          case "name-asc":
-            return a.title.localeCompare(b.title);
-          case "name-desc":
-            return b.title.localeCompare(a.title);
-          default:
-            return 0;
-        }
+      result = [...result].sort((a, b) => {
+        if (sortBy === "price-asc") return a.price - b.price;
+        if (sortBy === "price-desc") return b.price - a.price;
+        if (sortBy === "name-asc") return a.title.localeCompare(b.title);
+        if (sortBy === "name-desc") return b.title.localeCompare(a.title);
+        return 0;
       });
     }
 
-    return filtered;
+    return result;
   }, [products, search, category, sortBy, showFavoritesOnly, favorites]);
 
   if (!hydrated && favorites.size === 0) {
